@@ -22,7 +22,7 @@ IPCManager::~IPCManager() {
 }
 
 std::string IPCManager::GetPipeName() {
-    return "WinlogonManagerServicePipe";
+    return "\\\\.\\pipe\\WinlogonManagerServicePipe";
 }
 
 bool IPCManager::StartServer(CommandHandler handler) {
@@ -105,6 +105,7 @@ DWORD WINAPI IPCManager::ServerThread(LPVOID lpParam) {
         );
 
         if (hPipe == INVALID_HANDLE_VALUE) {
+            std::cout << "创建命名管道失败，错误代码: " << GetLastError() << std::endl;
             break;
         }
 
@@ -113,6 +114,7 @@ DWORD WINAPI IPCManager::ServerThread(LPVOID lpParam) {
             TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
 
         if (connected) {
+            std::cout << "客户端已连接到IPC管道" << std::endl;
             char buffer[BUFFER_SIZE];
             DWORD bytesRead;
 

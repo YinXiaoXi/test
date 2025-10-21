@@ -1,4 +1,3 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
@@ -7,11 +6,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "service", "service.vcxproj"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Release|Win32 = Release|Win32
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{62C4386B-55C8-4375-BFB3-FE3573180391}.Release|Win32.ActiveCfg = Release|Win32
-		{62C4386B-55C8-4375-BFB3-FE3573180391}.Release|Win32.Build.0 = Release|Win32
+		{62C4386B-55C8-4375-BFB3-FE3573180391}.Debug|x64.ActiveCfg = Debug|x64
+		{62C4386B-55C8-4375-BFB3-FE3573180391}.Debug|x64.Build.0 = Debug|x64
+		{62C4386B-55C8-4375-BFB3-FE3573180391}.Release|x64.ActiveCfg = Release|x64
+		{62C4386B-55C8-4375-BFB3-FE3573180391}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

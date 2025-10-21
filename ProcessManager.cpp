@@ -1,5 +1,6 @@
 #include "ProcessManager.h"
 #include <iostream>
+#include <tlhelp32.h>
 
 ProcessManager::ProcessManager() {
 }
@@ -47,6 +48,7 @@ std::vector<DWORD> ProcessManager::FindProcesses(const wchar_t* processName) {
 bool ProcessManager::SuspendResumeThreads(DWORD pid, bool suspend) {
 	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 	if (hSnapshot == INVALID_HANDLE_VALUE) {
+		std::wcout << L"创建线程快照失败，错误代码: " << GetLastError() << std::endl;
 		return false;
 	}
 
@@ -78,15 +80,17 @@ bool ProcessManager::SuspendResumeThreads(DWORD pid, bool suspend) {
 bool ProcessManager::SuspendProcess(const wchar_t* processName) {
 	auto pids = FindProcesses(processName);
 	if (pids.empty()) {
-		std::wcout << L"未找到进程: " << processName << std::endl;
+		std::cout << "未找到进程: " << std::endl;
 		return false;
 	}
 
 	bool anySuspended = false;
 	for (DWORD pid : pids) {
 		if (SuspendResumeThreads(pid, true)) {
-			std::wcout << L"已挂起进程 " << processName << L" (PID: " << pid << L")" << std::endl;
+			std::cout << "已挂起进程 (PID: " << pid << ")" << std::endl;
 			anySuspended = true;
+		} else {
+			std::cout << "挂起进程失败 (PID: " << pid << ")，错误代码: " << GetLastError() << std::endl;
 		}
 	}
 
@@ -96,15 +100,17 @@ bool ProcessManager::SuspendProcess(const wchar_t* processName) {
 bool ProcessManager::ResumeProcess(const wchar_t* processName) {
 	auto pids = FindProcesses(processName);
 	if (pids.empty()) {
-		std::wcout << L"未找到进程: " << processName << std::endl;
+		std::cout << "未找到进程: " << std::endl;
 		return false;
 	}
 
 	bool anyResumed = false;
 	for (DWORD pid : pids) {
 		if (SuspendResumeThreads(pid, false)) {
-			std::wcout << L"已恢复进程 " << processName << L" (PID: " << pid << L")" << std::endl;
+			std::cout << "已恢复进程 (PID: " << pid << ")" << std::endl;
 			anyResumed = true;
+		} else {
+			std::cout << "恢复进程失败 (PID: " << pid << ")，错误代码: " << GetLastError() << std::endl;
 		}
 	}
 

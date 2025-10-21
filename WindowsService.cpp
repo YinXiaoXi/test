@@ -6,7 +6,7 @@
 #include <sstream>
 #include "IPCManager.h"
 
-#define SERVICE_NAME L"RayLinkService"
+#define SERVICE_NAME L"WinlogonManagerService"
 
 WindowsService* WindowsService::s_pThis = nullptr;
 
@@ -89,9 +89,13 @@ int WindowsService::Run() {
         }
     }
 
-    // 如果是第一个实例，启动IPC服务器
-    // 使用 [this] 捕获当前实例
-    if (!m_IPCManager.StartServer([this](const std::string& cmd) {
+    // 如果有命令，直接执行
+    if (!m_Command.empty()) {
+        return HandleCommand() ? 0 : 1;
+    }
+
+    // 如果没有命令，启动IPC服务器
+    if (!m_IPCManager.StartServer([this](const std::string cmd) {
         return this->HandleIPCCommand(cmd);
         })) {
         std::cout << "启动IPC服务器失败" << std::endl;
@@ -99,46 +103,16 @@ int WindowsService::Run() {
     }
     std::cout << "IPC服务器已启动，等待命令..." << std::endl;
 
-    // 原有的服务逻辑保持不变
-    if (!m_Command.empty()) {
-        return HandleCommand() ? 0 : 1;
-    }
-
-    // 如果没有参数，检查服务状态
-    ServiceManager serviceManager(SERVICE_NAME);
-    if (!serviceManager.IsInstalled()) {
-        std::cout << "服务未安装，正在安装..." << std::endl;
-        if (!InstallService()) {
-            std::cout << "安装服务失败" << std::endl;
-            return 1;
-        }
-        std::cout << "服务安装成功，正在启动..." << std::endl;
-        if (!StartService()) {
-            std::cout << "启动服务失败" << std::endl;
-            return 1;
-        }
-        return 0;
-    }
-
-    // 如果服务已安装，作为服务运行
-    std::cout << "以服务模式运行..." << std::endl;
-
-    SERVICE_TABLE_ENTRY serviceTable[] = {
-        { (LPWSTR)SERVICE_NAME, ServiceMain },
-        { NULL, NULL }
-    };
-
-    if (!StartServiceCtrlDispatcher(serviceTable)) {
-        std::cout << "启动服务控制分发器失败: " << GetLastError() << std::endl;
-        return 1;
-    }
-
+    // 等待用户输入或保持IPC服务器运行
+    std::cout << "按任意键退出..." << std::endl;
+    std::cin.get();
     return 0;
 }
 
 void WINAPI WindowsService::ServiceMain(DWORD argc, LPTSTR* argv) {
     if (!s_pThis) return;
 
+    // 注册服务控制处理器
     s_pThis->m_ServiceStatusHandle = RegisterServiceCtrlHandler(
         SERVICE_NAME, ServiceCtrlHandler);
 
@@ -146,10 +120,12 @@ void WINAPI WindowsService::ServiceMain(DWORD argc, LPTSTR* argv) {
         return;
     }
 
+    // 报告服务正在启动
     s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
     s_pThis->m_ServiceStatus.dwWaitHint = 3000;
     SetServiceStatus(s_pThis->m_ServiceStatusHandle, &s_pThis->m_ServiceStatus);
 
+    // 创建停止事件
     s_pThis->m_ServiceStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (s_pThis->m_ServiceStopEvent == NULL) {
         s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
@@ -157,26 +133,31 @@ void WINAPI WindowsService::ServiceMain(DWORD argc, LPTSTR* argv) {
         return;
     }
 
-    // 在服务启动时启动IPC服务器
-    // 这里直接使用 s_pThis，因为我们在静态函数中
-    s_pThis->m_IPCManager.StartServer([](const std::string& cmd) {
+    // 启动IPC服务器
+    if (!s_pThis->m_IPCManager.StartServer([](const std::string cmd) {
         if (WindowsService::s_pThis) {
             return WindowsService::s_pThis->HandleIPCCommand(cmd);
         }
         return false;
-        });
+        })) {
+        // IPC服务器启动失败，但服务仍然可以运行
+        // 可以在这里记录日志
+    }
 
+    // 报告服务正在运行
     s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
+    s_pThis->m_ServiceStatus.dwWaitHint = 0;
     SetServiceStatus(s_pThis->m_ServiceStatusHandle, &s_pThis->m_ServiceStatus);
 
     s_pThis->m_IsRunningAsService = true;
+    
+    // 运行服务主循环
     s_pThis->ServiceWorkerThread();
 
-    WaitForSingleObject(s_pThis->m_ServiceStopEvent, INFINITE);
-
-    // 在服务停止时停止IPC服务器
+    // 服务停止时清理资源
     s_pThis->m_IPCManager.StopServer();
 
+    // 报告服务已停止
     s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
     SetServiceStatus(s_pThis->m_ServiceStatusHandle, &s_pThis->m_ServiceStatus);
 }
@@ -198,9 +179,17 @@ void WINAPI WindowsService::ServiceCtrlHandler(DWORD dwCtrl) {
 
 void WindowsService::ServiceWorkerThread() {
     // 服务主工作线程
-    while (WaitForSingleObject(m_ServiceStopEvent, 0) != WAIT_OBJECT_0) {
+    while (true) {
+        // 等待停止事件，超时时间为1秒
+        DWORD waitResult = WaitForSingleObject(m_ServiceStopEvent, 1000);
+        
+        if (waitResult == WAIT_OBJECT_0) {
+            // 收到停止信号，退出循环
+            break;
+        }
+        
         // 这里可以添加服务的定期任务
-        Sleep(1000);
+        // 例如：检查系统状态、处理请求等
     }
 }
 
@@ -226,24 +215,50 @@ bool WindowsService::HandleCommand() {
     else if (m_Command == "--status") {
         return QueryService();
     }
+    else if (m_Command == "--help") {
+        std::cout << "Winlogon Manager Service" << std::endl;
+        std::cout << "可用命令:" << std::endl;
+        std::cout << "  --install    安装服务" << std::endl;
+        std::cout << "  --uninstall  卸载服务" << std::endl;
+        std::cout << "  --start      启动服务" << std::endl;
+        std::cout << "  --stop       停止服务" << std::endl;
+        std::cout << "  --suspend    挂起winlogon进程" << std::endl;
+        std::cout << "  --resume     恢复winlogon进程" << std::endl;
+        std::cout << "  --status     查询服务状态" << std::endl;
+        std::cout << "  --help       显示此帮助信息" << std::endl;
+        return true;
+    }
     else {
         std::cout << "未知命令: " << m_Command << std::endl;
-        std::cout << "可用命令: --install, --uninstall, --start, --stop, --suspend, --resume, --status" << std::endl;
+        std::cout << "使用 --help 查看可用命令" << std::endl;
         return false;
     }
 }
 
 bool WindowsService::InstallService() {
+    std::cout << "开始安装服务..." << std::endl;
+    
     ServiceManager serviceManager(SERVICE_NAME);
 
     wchar_t modulePath[MAX_PATH];
     GetModuleFileName(NULL, modulePath, MAX_PATH);
+    
+    std::cout << "服务路径: ";
+    std::wcout << modulePath << std::endl;
 
-    return serviceManager.InstallService(
+    bool result = serviceManager.InstallService(
         L"Winlogon Manager Service",
         L"管理winlogon进程的服务",
         modulePath
     );
+    
+    if (result) {
+        std::cout << "服务安装成功！" << std::endl;
+    } else {
+        std::cout << "服务安装失败！" << std::endl;
+    }
+    
+    return result;
 }
 
 bool WindowsService::UninstallService() {
@@ -273,7 +288,7 @@ bool WindowsService::SuspendWinlogon() {
         std::cout << "winlogon.exe 已挂起" << std::endl;
         return true;
     }
-    std::cout << "挂起 winlogon.exe 失败" << std::endl;
+    std::cout << "挂起 winlogon.exe 失败，请确保以管理员权限运行" << std::endl;
     return false;
 }
 
