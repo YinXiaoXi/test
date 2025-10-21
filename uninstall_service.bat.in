@@ -1,0 +1,13 @@
+@echo off
+echo Uninstalling Winlogon Manager Service...
+
+@PROJECT_NAME@.exe --stop
+@PROJECT_NAME@.exe --uninstall
+
+if %ERRORLEVEL% EQU 0 (
+    echo Service uninstalled successfully!
+) else (
+    echo Failed to uninstall service.
+)
+
+pause

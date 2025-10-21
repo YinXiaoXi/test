@@ -1,35 +1,46 @@
 #pragma once
 
-#include <windows.h>
-#include <string>
-#include <vector>
-#include <functional>
+#include "Common.h"
 
 class IPCManager {
 public:
     IPCManager();
     ~IPCManager();
-
-    // Ê¹ÓÃ»Øµ÷º¯ÊıÀ´´¦ÀíÃüÁî
-    using CommandHandler = std::function<bool(const std::string&)>;
-
-    // ·şÎñÆ÷¶Ëº¯Êı
+    
+    // ç¦ç”¨æ‹·è´æ„é€ å’Œèµ‹å€¼
+    IPCManager(const IPCManager&) = delete;
+    IPCManager& operator=(const IPCManager&) = delete;
+    
+    // æœåŠ¡å™¨åŠŸèƒ½
     bool StartServer(CommandHandler handler = nullptr);
     void StopServer();
-    bool IsServerRunning() const;
-
-    // ¿Í»§¶Ëº¯Êı
-    bool SendCommandToServer(const std::string& command);
-
-    // Í¨ÓÃº¯Êı
-    static std::string GetPipeName();
-
+    bool IsServerRunning() const { return m_serverRunning; }
+    
+    // å®¢æˆ·ç«¯åŠŸèƒ½
+    bool SendCommand(const String& command, String& response);
+    bool SendCommand(const String& command);
+    
+    // é…ç½®
+    void SetPipeName(const WString& pipeName);
+    WString GetPipeName() const { return m_pipeName; }
+    void SetTimeout(DWORD timeoutMs) { m_timeoutMs = timeoutMs; }
+    DWORD GetTimeout() const { return m_timeoutMs; }
+    
+    // é”™è¯¯å¤„ç†
+    ErrorCode GetLastError() const { return m_lastError; }
+    String GetLastErrorString() const;
+    
 private:
-    static DWORD WINAPI ServerThread(LPVOID lpParam);
-    void ProcessClientCommand(HANDLE hPipe, const std::string& command);
-
-    HANDLE m_hServerThread;
-    HANDLE m_hStopEvent;
-    bool m_ServerRunning;
-    CommandHandler m_CommandHandler;
+    WString m_pipeName;
+    DWORD m_timeoutMs;
+    HANDLE m_serverThread;
+    HANDLE m_stopEvent;
+    std::atomic<bool> m_serverRunning;
+    CommandHandler m_commandHandler;
+    ErrorCode m_lastError;
+    
+    static DWORD WINAPI ServerThreadProc(LPVOID lpParam);
+    void ProcessClientCommand(HANDLE hPipe, const String& command);
+    void SetLastError(ErrorCode error);
+    void SetLastError(DWORD win32Error);
 };

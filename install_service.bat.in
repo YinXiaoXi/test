@@ -1,0 +1,19 @@
+@echo off
+echo Installing Winlogon Manager Service...
+
+@PROJECT_NAME@.exe --install
+
+if %ERRORLEVEL% EQU 0 (
+    echo Service installed successfully!
+    echo Starting service...
+    @PROJECT_NAME@.exe --start
+    if %ERRORLEVEL% EQU 0 (
+        echo Service started successfully!
+    ) else (
+        echo Failed to start service.
+    )
+) else (
+    echo Failed to install service.
+)
+
+pause
