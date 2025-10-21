@@ -1,6 +1,4 @@
 #include "ServiceManager.h"
-#include "Logger.h"
-#include "Utils.h"
 
 ServiceManager::ServiceManager(const WString& serviceName)
     : m_serviceName(serviceName)

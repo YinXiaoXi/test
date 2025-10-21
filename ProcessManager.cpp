@@ -1,6 +1,4 @@
 #include "ProcessManager.h"
-#include "Logger.h"
-#include "Utils.h"
 #include <tlhelp32.h>
 #include <psapi.h>
 

@@ -1,6 +1,20 @@
 #pragma once
 
-#include "Common.h"
+#include <windows.h>
+#include <string>
+#include <mutex>
+#include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <cstdarg>
+
+// 日志级别
+enum class LogLevel {
+    Debug = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3
+};
 
 class Logger {
 public:

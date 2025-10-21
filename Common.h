@@ -10,6 +10,7 @@
 #include <atomic>
 #include <iostream>
 #include <sstream>
+#include <cstdarg>
 
 // 常用类型定义
 using String = std::string;
@@ -53,16 +54,8 @@ enum class LogLevel {
     Error = 3
 };
 
-// 日志工具类
-class Logger {
-public:
-    static void Log(LogLevel level, const String& message);
-    static void Log(LogLevel level, const WString& message);
-    
-private:
-    static std::mutex s_logMutex;
-    static void WriteLog(LogLevel level, const String& message);
-};
+// 前向声明
+class Logger;
 
 // 工具函数
 class Utils {

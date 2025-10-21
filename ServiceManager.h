@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Common.h"
+#include "Logger.h"
+#include "Utils.h"
 
 class ServiceManager {
 public:

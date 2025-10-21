@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include "Utils.h"
 #include <fstream>
 #include <chrono>
 #include <iomanip>
@@ -46,7 +47,7 @@ void Logger::Log(LogLevel level, const char* format, ...) {
     va_start(args, format);
     
     char buffer[1024];
-    vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
+    vsnprintf_s(buffer, sizeof(buffer), format, args);
     
     va_end(args);
     
@@ -62,7 +63,7 @@ void Logger::Log(LogLevel level, const wchar_t* format, ...) {
     va_start(args, format);
     
     wchar_t buffer[1024];
-    vswprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
+    vswprintf_s(buffer, format, args);
     
     va_end(args);
     
@@ -133,7 +134,9 @@ String Logger::GetCurrentTimeString() {
         now.time_since_epoch()) % 1000;
     
     std::stringstream ss;
-    ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+    struct tm timeinfo;
+    localtime_s(&timeinfo, &time_t);
+    ss << std::put_time(&timeinfo, "%Y-%m-%d %H:%M:%S");
     ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
     
     return ss.str();

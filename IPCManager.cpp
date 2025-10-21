@@ -1,6 +1,4 @@
 #include "IPCManager.h"
-#include "Logger.h"
-#include "Utils.h"
 
 IPCManager::IPCManager()
     : m_pipeName(L"\\\\.\\pipe\\WinlogonManagerService")

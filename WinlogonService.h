@@ -4,6 +4,8 @@
 #include "ServiceManager.h"
 #include "ProcessManager.h"
 #include "IPCManager.h"
+#include "Logger.h"
+#include "Utils.h"
 
 class WinlogonService {
 public:
