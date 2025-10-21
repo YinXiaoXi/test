@@ -5,6 +5,7 @@ SingleInstance::SingleInstance(const char* mutexName)
 , m_MutexName(mutexName) {
 
 	m_Mutex = CreateMutexA(NULL, TRUE, mutexName);
+	m_IsFirstInstance = (m_Mutex != NULL) && (GetLastError() != ERROR_ALREADY_EXISTS);
 }
 
 SingleInstance::~SingleInstance() {
@@ -14,5 +15,5 @@ SingleInstance::~SingleInstance() {
 }
 
 bool SingleInstance::IsFirstInstance() {
-	return m_Mutex && GetLastError() != ERROR_ALREADY_EXISTS;
+	return m_IsFirstInstance;
 }

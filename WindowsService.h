@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <mutex>
 #include "IPCManager.h"
 
 class WindowsService {
@@ -16,13 +17,14 @@ public:
 
 private:
     static WindowsService* s_pThis;
+    static std::mutex s_pThisMutex;
 
-    // ·þÎñÏà¹Øº¯Êý
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Øºï¿½ï¿½ï¿½
     static void WINAPI ServiceMain(DWORD argc, LPTSTR* argv);
     static void WINAPI ServiceCtrlHandler(DWORD dwCtrl);
     void ServiceWorkerThread();
 
-    // ÃüÁî´¦Àíº¯Êý
+    // ï¿½ï¿½ï¿½î´¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     bool HandleCommand();
     bool HandleCommandString(const std::string& command);
     bool InstallService();
@@ -31,14 +33,14 @@ private:
     bool StopService();
     bool QueryService();
 
-    // ½ø³Ì²Ù×÷º¯Êý
+    // ï¿½ï¿½ï¿½Ì²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     bool SuspendWinlogon();
     bool ResumeWinlogon();
 
-    // IPCÃüÁî´¦Àí»Øµ÷
+    // IPCï¿½ï¿½ï¿½î´¦ï¿½ï¿½ï¿½Øµï¿½
     bool HandleIPCCommand(const std::string& command);
 
-    // ³ÉÔ±±äÁ¿
+    // ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½
     SERVICE_STATUS m_ServiceStatus;
     SERVICE_STATUS_HANDLE m_ServiceStatusHandle;
     HANDLE m_ServiceStopEvent;
@@ -46,9 +48,9 @@ private:
     bool m_IsRunningAsService;
     HANDLE m_InstanceMutex;
 
-    // IPC¹ÜÀíÆ÷
+    // IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     IPCManager m_IPCManager;
 
-    // ½ø³Ì×´Ì¬
+    // ï¿½ï¿½ï¿½ï¿½×´Ì¬
     bool m_WinlogonSuspended;
 };

@@ -57,7 +57,7 @@ void IPCManager::StopServer() {
 
     SetEvent(m_hStopEvent);
 
-    // ·¢ËÍÒ»¸ö¿ÕÁ¬½ÓÀ´»½ÐÑ·þÎñÆ÷Ïß³Ì
+    // ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
     HANDLE hPipe = CreateFile(
         PIPE_NAME,
         GENERIC_WRITE,
@@ -92,7 +92,7 @@ DWORD WINAPI IPCManager::ServerThread(LPVOID lpParam) {
         return 1;
     }
 
-    while (WaitForSingleObject(pThis->m_hStopEvent, 0) != WAIT_OBJECT_0) {
+    while (WaitForSingleObject(pThis->m_hStopEvent, 100) != WAIT_OBJECT_0) {
         HANDLE hPipe = CreateNamedPipe(
             PIPE_NAME,
             PIPE_ACCESS_DUPLEX,
@@ -105,16 +105,16 @@ DWORD WINAPI IPCManager::ServerThread(LPVOID lpParam) {
         );
 
         if (hPipe == INVALID_HANDLE_VALUE) {
-            std::cout << "´´½¨ÃüÃû¹ÜµÀÊ§°Ü£¬´íÎó´úÂë: " << GetLastError() << std::endl;
+            std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Üµï¿½Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: " << GetLastError() << std::endl;
             break;
         }
 
-        // µÈ´ý¿Í»§¶ËÁ¬½Ó£¨´ø³¬Ê±£©
+        // ï¿½È´ï¿½ï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó£ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
         BOOL connected = ConnectNamedPipe(hPipe, NULL) ?
             TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
 
         if (connected) {
-            std::cout << "¿Í»§¶ËÒÑÁ¬½Óµ½IPC¹ÜµÀ" << std::endl;
+            std::cout << "ï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½IPCï¿½Üµï¿½" << std::endl;
             char buffer[BUFFER_SIZE];
             DWORD bytesRead;
 
@@ -140,24 +140,24 @@ DWORD WINAPI IPCManager::ServerThread(LPVOID lpParam) {
 }
 
 void IPCManager::ProcessClientCommand(HANDLE hPipe, const std::string& command) {
-    std::cout << "½ÓÊÕµ½ÃüÁî: " << command << std::endl;
+    std::cout << "ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½: " << command << std::endl;
 
     std::string response;
 
-    // Ê¹ÓÃ»Øµ÷º¯Êý´¦ÀíÃüÁî
+    // Ê¹ï¿½Ã»Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if (m_CommandHandler) {
         if (m_CommandHandler(command)) {
-            response = "ÃüÁîÖ´ÐÐ³É¹¦: " + command;
+            response = "ï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð³É¹ï¿½: " + command;
         }
         else {
-            response = "ÃüÁîÖ´ÐÐÊ§°Ü: " + command;
+            response = "ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½Ê§ï¿½ï¿½: " + command;
         }
     }
     else {
-        response = "ÎÞÃüÁî´¦ÀíÆ÷¿ÉÓÃ";
+        response = "ï¿½ï¿½ï¿½ï¿½ï¿½î´¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½";
     }
 
-    // ·¢ËÍÏìÓ¦
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦
     DWORD bytesWritten;
     WriteFile(
         hPipe,
@@ -183,11 +183,11 @@ bool IPCManager::SendCommandToServer(const std::string& command) {
         return false;
     }
 
-    // ÉèÖÃ¹ÜµÀÄ£Ê½
+    // ï¿½ï¿½ï¿½Ã¹Üµï¿½Ä£Ê½
     DWORD mode = PIPE_READMODE_MESSAGE;
     SetNamedPipeHandleState(hPipe, &mode, NULL, NULL);
 
-    // ·¢ËÍÃüÁî
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     DWORD bytesWritten;
     BOOL success = WriteFile(
         hPipe,
@@ -202,7 +202,7 @@ bool IPCManager::SendCommandToServer(const std::string& command) {
         return false;
     }
 
-    // ¶ÁÈ¡ÏìÓ¦
+    // ï¿½ï¿½È¡ï¿½ï¿½Ó¦
     char buffer[BUFFER_SIZE];
     DWORD bytesRead;
     success = ReadFile(
@@ -215,7 +215,7 @@ bool IPCManager::SendCommandToServer(const std::string& command) {
 
     if (success && bytesRead > 0) {
         buffer[bytesRead] = '\0';
-        std::cout << "·þÎñÆ÷ÏìÓ¦: " << buffer << std::endl;
+        std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦: " << buffer << std::endl;
     }
 
     CloseHandle(hPipe);

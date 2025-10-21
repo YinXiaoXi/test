@@ -13,4 +13,5 @@ public:
 private:
 	HANDLE m_Mutex;
 	std::string m_MutexName;
+	bool m_IsFirstInstance;
 };

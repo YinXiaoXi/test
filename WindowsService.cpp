@@ -9,15 +9,17 @@
 #define SERVICE_NAME L"WinlogonManagerService"
 
 WindowsService* WindowsService::s_pThis = nullptr;
+std::mutex WindowsService::s_pThisMutex;
 
 WindowsService::WindowsService()
     : m_ServiceStopEvent(INVALID_HANDLE_VALUE)
     , m_IsRunningAsService(false)
     , m_InstanceMutex(INVALID_HANDLE_VALUE)
     , m_WinlogonSuspended(false) {
+    std::lock_guard<std::mutex> lock(s_pThisMutex);
     s_pThis = this;
 
-    // ³õÊ¼»¯·þÎñ×´Ì¬
+    // ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
     m_ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
     m_ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
@@ -49,70 +51,71 @@ bool WindowsService::HandleIPCCommand(const std::string& command) {
 }
 
 bool WindowsService::HandleCommandString(const std::string& command) {
-    // ÁÙÊ±±£´æÔ­Ê¼ÃüÁî
+    // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ô­Ê¼ï¿½ï¿½ï¿½ï¿½
     std::string originalCommand = m_Command;
 
-    // ÉèÖÃÐÂÃüÁî²¢Ö´ÐÐ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î²¢Ö´ï¿½ï¿½
     m_Command = command;
     bool result = HandleCommand();
 
-    // »Ö¸´Ô­Ê¼ÃüÁî
+    // ï¿½Ö¸ï¿½Ô­Ê¼ï¿½ï¿½ï¿½ï¿½
     m_Command = originalCommand;
 
     return result;
 }
 
 int WindowsService::Run() {
-    // ³¢ÊÔ´´½¨»¥³âÌåÈ·±£µ¥ÊµÀý
+    // ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
     SingleInstance singleInstance("Global\\WinlogonManagerService");
 
     if (!singleInstance.IsFirstInstance()) {
-        std::cout << "ÁíÒ»¸öÊµÀýÕýÔÚÔËÐÐ£¬½«ÃüÁî´«µÝ¸øËü..." << std::endl;
+        std::cout << "ï¿½ï¿½Ò»ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Ý¸ï¿½ï¿½ï¿½..." << std::endl;
 
-        // Èç¹ûµ±Ç°ÓÐÃüÁî£¬¾Í·¢ËÍ¸øÒÑÔËÐÐµÄÊµÀý
+        // ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½î£¬ï¿½Í·ï¿½ï¿½Í¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Êµï¿½ï¿½
         if (!m_Command.empty()) {
             IPCManager ipc;
             if (ipc.SendCommandToServer(m_Command)) {
-                std::cout << "ÃüÁîÒÑ³É¹¦·¢ËÍµ½ÔËÐÐÖÐµÄÊµÀý" << std::endl;
+                std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½Ñ³É¹ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Êµï¿½ï¿½" << std::endl;
                 return 0;
             }
             else {
-                std::cout << "ÎÞ·¨Á¬½Óµ½ÔËÐÐÖÐµÄÊµÀý£¬¿ÉÄÜ·þÎñÎ´ÔËÐÐ" << std::endl;
-                // Èç¹ûÎÞ·¨Á¬½Ó£¬¿ÉÄÜ·þÎñÃ»ÓÐÔËÐÐ£¬ÎÒÃÇ¼ÌÐøÖ´ÐÐ
-                std::cout << "½«Ö±½ÓÖ´ÐÐÃüÁî..." << std::endl;
+                std::cout << "ï¿½Þ·ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü·ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½" << std::endl;
+                // ï¿½ï¿½ï¿½ï¿½Þ·ï¿½ï¿½ï¿½ï¿½Ó£ï¿½ï¿½ï¿½ï¿½Ü·ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Ç¼ï¿½ï¿½ï¿½Ö´ï¿½ï¿½
+                std::cout << "ï¿½ï¿½Ö±ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½..." << std::endl;
                 return 1;
             }
         }
         else {
-            std::cout << "ÎÞÃüÁîÐèÒª´«µÝ" << std::endl;
+            std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½" << std::endl;
             return 0;
         }
     }
 
-    // Èç¹ûÓÐÃüÁî£¬Ö±½ÓÖ´ÐÐ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î£¬Ö±ï¿½ï¿½Ö´ï¿½ï¿½
     if (!m_Command.empty()) {
         return HandleCommand() ? 0 : 1;
     }
 
-    // Èç¹ûÃ»ÓÐÃüÁî£¬Æô¶¯IPC·þÎñÆ÷
+    // ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½î£¬ï¿½ï¿½ï¿½ï¿½IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if (!m_IPCManager.StartServer([this](const std::string cmd) {
         return this->HandleIPCCommand(cmd);
         })) {
-        std::cout << "Æô¶¯IPC·þÎñÆ÷Ê§°Ü" << std::endl;
+        std::cout << "ï¿½ï¿½ï¿½ï¿½IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½" << std::endl;
         return 1;
     }
-    std::cout << "IPC·þÎñÆ÷ÒÑÆô¶¯£¬µÈ´ýÃüÁî..." << std::endl;
+    std::cout << "IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½ï¿½ï¿½..." << std::endl;
 
-    // µÈ´ýÓÃ»§ÊäÈë»ò±£³ÖIPC·þÎñÆ÷ÔËÐÐ
-    std::cout << "°´ÈÎÒâ¼üÍË³ö..." << std::endl;
+    // ï¿½È´ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ò±£³ï¿½IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë³ï¿½..." << std::endl;
     std::cin.get();
     return 0;
 }
 
 void WINAPI WindowsService::ServiceMain(DWORD argc, LPTSTR* argv) {
+    std::lock_guard<std::mutex> lock(s_pThisMutex);
     if (!s_pThis) return;
 
-    // ×¢²á·þÎñ¿ØÖÆ´¦ÀíÆ÷
+    // ×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ´ï¿½ï¿½ï¿½ï¿½ï¿½
     s_pThis->m_ServiceStatusHandle = RegisterServiceCtrlHandler(
         SERVICE_NAME, ServiceCtrlHandler);
 
@@ -120,12 +123,12 @@ void WINAPI WindowsService::ServiceMain(DWORD argc, LPTSTR* argv) {
         return;
     }
 
-    // ±¨¸æ·þÎñÕýÔÚÆô¶¯
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
     s_pThis->m_ServiceStatus.dwWaitHint = 3000;
     SetServiceStatus(s_pThis->m_ServiceStatusHandle, &s_pThis->m_ServiceStatus);
 
-    // ´´½¨Í£Ö¹ÊÂ¼þ
+    // ï¿½ï¿½ï¿½ï¿½Í£Ö¹ï¿½Â¼ï¿½
     s_pThis->m_ServiceStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (s_pThis->m_ServiceStopEvent == NULL) {
         s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
@@ -133,36 +136,37 @@ void WINAPI WindowsService::ServiceMain(DWORD argc, LPTSTR* argv) {
         return;
     }
 
-    // Æô¶¯IPC·þÎñÆ÷
+    // ï¿½ï¿½ï¿½ï¿½IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if (!s_pThis->m_IPCManager.StartServer([](const std::string cmd) {
         if (WindowsService::s_pThis) {
             return WindowsService::s_pThis->HandleIPCCommand(cmd);
         }
         return false;
         })) {
-        // IPC·þÎñÆ÷Æô¶¯Ê§°Ü£¬µ«·þÎñÈÔÈ»¿ÉÒÔÔËÐÐ
-        // ¿ÉÒÔÔÚÕâÀï¼ÇÂ¼ÈÕÖ¾
+        // IPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
     }
 
-    // ±¨¸æ·þÎñÕýÔÚÔËÐÐ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
     s_pThis->m_ServiceStatus.dwWaitHint = 0;
     SetServiceStatus(s_pThis->m_ServiceStatusHandle, &s_pThis->m_ServiceStatus);
 
     s_pThis->m_IsRunningAsService = true;
     
-    // ÔËÐÐ·þÎñÖ÷Ñ­»·
+    // ï¿½ï¿½ï¿½Ð·ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
     s_pThis->ServiceWorkerThread();
 
-    // ·þÎñÍ£Ö¹Ê±ÇåÀí×ÊÔ´
+    // ï¿½ï¿½ï¿½ï¿½Í£Ö¹Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô´
     s_pThis->m_IPCManager.StopServer();
 
-    // ±¨¸æ·þÎñÒÑÍ£Ö¹
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£Ö¹
     s_pThis->m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
     SetServiceStatus(s_pThis->m_ServiceStatusHandle, &s_pThis->m_ServiceStatus);
 }
 
 void WINAPI WindowsService::ServiceCtrlHandler(DWORD dwCtrl) {
+    std::lock_guard<std::mutex> lock(s_pThisMutex);
     if (!s_pThis) return;
 
     switch (dwCtrl) {
@@ -178,18 +182,18 @@ void WINAPI WindowsService::ServiceCtrlHandler(DWORD dwCtrl) {
 }
 
 void WindowsService::ServiceWorkerThread() {
-    // ·þÎñÖ÷¹¤×÷Ïß³Ì
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
     while (true) {
-        // µÈ´ýÍ£Ö¹ÊÂ¼þ£¬³¬Ê±Ê±¼äÎª1Ãë
+        // ï¿½È´ï¿½Í£Ö¹ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ê±ï¿½ï¿½Îª1ï¿½ï¿½
         DWORD waitResult = WaitForSingleObject(m_ServiceStopEvent, 1000);
         
         if (waitResult == WAIT_OBJECT_0) {
-            // ÊÕµ½Í£Ö¹ÐÅºÅ£¬ÍË³öÑ­»·
+            // ï¿½Õµï¿½Í£Ö¹ï¿½ÅºÅ£ï¿½ï¿½Ë³ï¿½Ñ­ï¿½ï¿½
             break;
         }
         
-        // ÕâÀï¿ÉÒÔÌí¼Ó·þÎñµÄ¶¨ÆÚÈÎÎñ
-        // ÀýÈç£º¼ì²éÏµÍ³×´Ì¬¡¢´¦ÀíÇëÇóµÈ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó·ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        // ï¿½ï¿½ï¿½ç£ºï¿½ï¿½ï¿½ÏµÍ³×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     }
 }
 
@@ -217,45 +221,45 @@ bool WindowsService::HandleCommand() {
     }
     else if (m_Command == "--help") {
         std::cout << "Winlogon Manager Service" << std::endl;
-        std::cout << "¿ÉÓÃÃüÁî:" << std::endl;
-        std::cout << "  --install    °²×°·þÎñ" << std::endl;
-        std::cout << "  --uninstall  Ð¶ÔØ·þÎñ" << std::endl;
-        std::cout << "  --start      Æô¶¯·þÎñ" << std::endl;
-        std::cout << "  --stop       Í£Ö¹·þÎñ" << std::endl;
-        std::cout << "  --suspend    ¹ÒÆðwinlogon½ø³Ì" << std::endl;
-        std::cout << "  --resume     »Ö¸´winlogon½ø³Ì" << std::endl;
-        std::cout << "  --status     ²éÑ¯·þÎñ×´Ì¬" << std::endl;
-        std::cout << "  --help       ÏÔÊ¾´Ë°ïÖúÐÅÏ¢" << std::endl;
+        std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½:" << std::endl;
+        std::cout << "  --install    ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½" << std::endl;
+        std::cout << "  --uninstall  Ð¶ï¿½Ø·ï¿½ï¿½ï¿½" << std::endl;
+        std::cout << "  --start      ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" << std::endl;
+        std::cout << "  --stop       Í£Ö¹ï¿½ï¿½ï¿½ï¿½" << std::endl;
+        std::cout << "  --suspend    ï¿½ï¿½ï¿½ï¿½winlogonï¿½ï¿½ï¿½ï¿½" << std::endl;
+        std::cout << "  --resume     ï¿½Ö¸ï¿½winlogonï¿½ï¿½ï¿½ï¿½" << std::endl;
+        std::cout << "  --status     ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½×´Ì¬" << std::endl;
+        std::cout << "  --help       ï¿½ï¿½Ê¾ï¿½Ë°ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢" << std::endl;
         return true;
     }
     else {
-        std::cout << "Î´ÖªÃüÁî: " << m_Command << std::endl;
-        std::cout << "Ê¹ÓÃ --help ²é¿´¿ÉÓÃÃüÁî" << std::endl;
+        std::cout << "Î´Öªï¿½ï¿½ï¿½ï¿½: " << m_Command << std::endl;
+        std::cout << "Ê¹ï¿½ï¿½ --help ï¿½é¿´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" << std::endl;
         return false;
     }
 }
 
 bool WindowsService::InstallService() {
-    std::cout << "¿ªÊ¼°²×°·þÎñ..." << std::endl;
+    std::cout << "ï¿½ï¿½Ê¼ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½..." << std::endl;
     
     ServiceManager serviceManager(SERVICE_NAME);
 
     wchar_t modulePath[MAX_PATH];
     GetModuleFileName(NULL, modulePath, MAX_PATH);
     
-    std::cout << "·þÎñÂ·¾¶: ";
+    std::cout << "ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½: ";
     std::wcout << modulePath << std::endl;
 
     bool result = serviceManager.InstallService(
         L"Winlogon Manager Service",
-        L"¹ÜÀíwinlogon½ø³ÌµÄ·þÎñ",
+        L"ï¿½ï¿½ï¿½ï¿½winlogonï¿½ï¿½ï¿½ÌµÄ·ï¿½ï¿½ï¿½",
         modulePath
     );
     
     if (result) {
-        std::cout << "·þÎñ°²×°³É¹¦£¡" << std::endl;
+        std::cout << "ï¿½ï¿½ï¿½ï¿½×°ï¿½É¹ï¿½ï¿½ï¿½" << std::endl;
     } else {
-        std::cout << "·þÎñ°²×°Ê§°Ü£¡" << std::endl;
+        std::cout << "ï¿½ï¿½ï¿½ï¿½×°Ê§ï¿½Ü£ï¿½" << std::endl;
     }
     
     return result;
@@ -285,10 +289,10 @@ bool WindowsService::SuspendWinlogon() {
     ProcessManager processManager;
     if (processManager.SuspendProcess(L"winlogon.exe")) {
         m_WinlogonSuspended = true;
-        std::cout << "winlogon.exe ÒÑ¹ÒÆð" << std::endl;
+        std::cout << "winlogon.exe ï¿½Ñ¹ï¿½ï¿½ï¿½" << std::endl;
         return true;
     }
-    std::cout << "¹ÒÆð winlogon.exe Ê§°Ü£¬ÇëÈ·±£ÒÔ¹ÜÀíÔ±È¨ÏÞÔËÐÐ" << std::endl;
+    std::cout << "ï¿½ï¿½ï¿½ï¿½ winlogon.exe Ê§ï¿½Ü£ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ô¹ï¿½ï¿½ï¿½Ô±È¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" << std::endl;
     return false;
 }
 
@@ -296,10 +300,10 @@ bool WindowsService::ResumeWinlogon() {
     ProcessManager processManager;
     if (processManager.ResumeProcess(L"winlogon.exe")) {
         m_WinlogonSuspended = false;
-        std::cout << "winlogon.exe ÒÑ»Ö¸´" << std::endl;
+        std::cout << "winlogon.exe ï¿½Ñ»Ö¸ï¿½" << std::endl;
         return true;
     }
-    std::cout << "»Ö¸´ winlogon.exe Ê§°Ü" << std::endl;
+    std::cout << "ï¿½Ö¸ï¿½ winlogon.exe Ê§ï¿½ï¿½" << std::endl;
     return false;
 }
 
@@ -307,7 +311,7 @@ int main(int argc, char* argv[]) {
     WindowsService service;
 
     if (!service.ParseCommandLine(argc, argv)) {
-        std::cout << "Î´Ìá¹©²ÎÊý£¬Ê¹ÓÃÄ¬ÈÏÐÐÎª..." << std::endl;
+        std::cout << "Î´ï¿½á¹©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½Ä¬ï¿½ï¿½ï¿½ï¿½Îª..." << std::endl;
     }
 
     return service.Run();
